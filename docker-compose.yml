@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # 1. Database PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: hvas-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: lupo123
+      POSTGRES_DB: db_sensor
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # 2. Broker MQTT Mosquitto
+  mosquitto:
+    image: eclipse-mosquitto:1.6.15 # Pakai versi 1.6 agar langsung bisa diakses tanpa setup otentikasi rumit
+    container_name: hvas-mqtt
+    restart: always
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+
+  # 3. Auth Service
+  auth-service:
+    build: ./auth-service
+    container_name: hvas-auth
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - JWT_SECRET=R4h4s1a_Tugas_Akhir_BSPJI_2026
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=lupo123
+      - DB_NAME=db_sensor
+    depends_on:
+      - postgres
+
+  # 4. Monitoring Service
+  monitoring-service:
+    build: ./monitoring-service
+    container_name: hvas-monitor
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=lupo123
+      - DB_NAME=db_sensor
+      - MQTT_BROKER=mqtt://mosquitto:1883
+    depends_on:
+      - postgres
+      - mosquitto
+
+  # 5. Control Service
+  control-service:
+    build: ./control-service
+    container_name: hvas-control
+    restart: always
+    ports:
+      - "5002:5002"
+    environment:
+      - PORT=5002
+      - JWT_SECRET=R4h4s1a_Tugas_Akhir_BSPJI_2026
+      - MQTT_BROKER=mqtt://mosquitto:1883
+    depends_on:
+      - mosquitto
+
+# Deklarasi volume agar data database tidak hilang saat server restart
+volumes:
+  pgdata:
