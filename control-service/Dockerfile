@@ -5,6 +5,6 @@ RUN npm install --production
 COPY . .
 
 # Port untuk Control Service
-EXPOSE 5002
+EXPOSE 5003
 
 CMD ["node", "index.js"]

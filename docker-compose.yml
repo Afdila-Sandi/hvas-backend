@@ -1,78 +1,114 @@
-version: '3.8'
+version: "3.8"
+
+# Menambahkan jaringan khusus agar komunikasi DNS antar kontainer lebih stabil
+networks:
+  hvas-net:
+    driver: bridge
 
 services:
-  # 1. Database PostgreSQL
-  postgres:
+  # ==========================================
+  # 1. DATABASE KEMBAR (TERISOLASI)
+  # ==========================================
+  postgres-auth:
     image: postgres:15-alpine
-    container_name: hvas-postgres
+    container_name: hvas-postgres-auth
     restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: lupo123
-      POSTGRES_DB: db_sensor
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: db_auth
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata_auth:/var/lib/postgresql/data
+      # Otomatisasi eksekusi tabel users
+      - ./auth-service/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - hvas-net
 
-  # 2. Broker MQTT Mosquitto
+  postgres-monitor:
+    image: postgres:15-alpine
+    container_name: hvas-postgres-monitor
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: lupo123
+      POSTGRES_DB: db_monitor
+    volumes:
+      - pgdata_monitor:/var/lib/postgresql/data
+      # Otomatisasi eksekusi tabel logs
+      - ./monitoring-service/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - hvas-net
+
+  # ==========================================
+  # 2. BROKER MQTT
+  # ==========================================
   mosquitto:
-    image: eclipse-mosquitto:1.6.15 # Pakai versi 1.6 agar langsung bisa diakses tanpa setup otentikasi rumit
+    image: eclipse-mosquitto:1.6.15
     container_name: hvas-mqtt
     restart: always
     ports:
       - "1883:1883"
       - "9001:9001"
+    networks:
+      - hvas-net
 
-  # 3. Auth Service
+  # ==========================================
+  # 3. MICROSERVICES (PORT TERTUTUP DARI LUAR)
+  # ==========================================
   auth-service:
     build: ./auth-service
     container_name: hvas-auth
     restart: always
-    ports:
-      - "5000:5000"
-    environment:
-      - PORT=5000
-      - JWT_SECRET=R4h4s1a_Tugas_Akhir_BSPJI_2026
-      - DB_HOST=postgres
-      - DB_USER=postgres
-      - DB_PASSWORD=lupo123
-      - DB_NAME=db_sensor
+    # Menarik variabel rahasia langsung dari file .env di dalam folder auth-service
+    env_file:
+      - ./auth-service/.env
     depends_on:
-      - postgres
+      - postgres-auth
+    networks:
+      - hvas-net
 
-  # 4. Monitoring Service
   monitoring-service:
     build: ./monitoring-service
     container_name: hvas-monitor
     restart: always
-    ports:
-      - "5001:5001"
-    environment:
-      - PORT=5001
-      - DB_HOST=postgres
-      - DB_USER=postgres
-      - DB_PASSWORD=lupo123
-      - DB_NAME=db_sensor
-      - MQTT_BROKER=mqtt://mosquitto:1883
+    # Menarik variabel rahasia langsung dari file .env di dalam folder monitoring-service
+    env_file:
+      - ./monitoring-service/.env
     depends_on:
-      - postgres
+      - postgres-monitor
       - mosquitto
+    networks:
+      - hvas-net
 
-  # 5. Control Service
   control-service:
     build: ./control-service
     container_name: hvas-control
     restart: always
-    ports:
-      - "5002:5002"
-    environment:
-      - PORT=5002
-      - JWT_SECRET=R4h4s1a_Tugas_Akhir_BSPJI_2026
-      - MQTT_BROKER=mqtt://mosquitto:1883
+    # Menarik variabel rahasia langsung dari file .env di dalam folder control-service
+    env_file:
+      - ./control-service/.env
     depends_on:
       - mosquitto
+    networks:
+      - hvas-net
 
-# Deklarasi volume agar data database tidak hilang saat server restart
+  # ==========================================
+  # 4. API GATEWAY NODE.JS (PINTU MASUK UTAMA)
+  # ==========================================
+  api-gateway:
+    build: ./api-gateway
+    container_name: hvas-api-gateway
+    restart: always
+    ports:
+      - "5000:80" # Akses dari Vue.js menembak ke Port 5000 ini
+    depends_on:
+      - auth-service
+      - monitoring-service
+      - control-service
+    networks:
+      - hvas-net
+
+# Deklarasi volume terpisah untuk dua database
 volumes:
-  pgdata:
+  pgdata_auth:
+  pgdata_monitor:

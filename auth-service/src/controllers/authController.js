@@ -7,7 +7,7 @@ exports.login = async (req, res) => {
 
     try {
         // 1. Cari pengguna di tabel database
-        const dbQuery = 'SELECT * FROM pengguna WHERE username = $1';
+        const dbQuery = 'SELECT * FROM users WHERE username = $1';
         const result = await pool.query(dbQuery, [username]);
 
         // Jika username tidak ditemukan di database
@@ -35,7 +35,7 @@ exports.login = async (req, res) => {
         const SECRET_KEY = process.env.JWT_SECRET || 'bspji_rahasia_super_kuat';
         const token = jwt.sign(
             { 
-                id: user.id_pengguna, 
+                id: user.id, 
                 username: user.username, 
                 role: user.peran // Akan berisi 'teknisi_lapangan' atau 'admin_pemantau'
             },

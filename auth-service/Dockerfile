@@ -5,6 +5,6 @@ RUN npm install --production
 COPY . .
 
 # Port untuk Auth Service
-EXPOSE 5000
+EXPOSE 5001
 
 CMD ["node", "index.js"]
