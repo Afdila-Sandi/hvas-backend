@@ -1,29 +1,29 @@
-require('dotenv').config();
-const http = require('http');
-const express = require('express');
-const cors = require('cors');
-const WebSocket = require('ws');
+require("dotenv").config();
+const http = require("http");
+const express = require("express");
+const cors = require("cors");
+const WebSocket = require("ws");
 
-const historyRoutes = require('./src/routes/historyRoutes');
-const { initSensorService } = require('./src/services/sensorService');
+const historyRoutes = require("./src/routes/historyRoutes");
+const { initSensorService } = require("./src/services/sensorService");
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 
 app.use(cors());
 app.use(express.json());
 
-// 1. Panggil Rute API HTTP
-app.use('/api/monitor', historyRoutes);
+// Rute HTTP untuk riwayat data
+app.use("/api/monitor", historyRoutes);
 
 const server = http.createServer(app);
 
-// 2. Setup Endpoint WebSocket
-const wss = new WebSocket.Server({ server, path: '/ws/monitor' });
+// Inisialisasi WebSocket untuk data seketika (real-time)
+const wss = new WebSocket.Server({ server, path: "/ws/monitor" });
 
-// 3. Jalankan service MQTT & WebSocket di background
+// Jalankan layanan sensor (MQTT & WebSocket)
 initSensorService(wss);
 
 server.listen(PORT, () => {
-    console.log(`📊 Monitoring Service berjalan di port internal ${PORT}`);
+  console.log(`Monitoring Service berjalan di port internal ${PORT}`);
 });

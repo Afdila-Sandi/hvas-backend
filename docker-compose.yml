@@ -1,47 +1,38 @@
 version: "3.8"
 
-# Menambahkan jaringan khusus agar komunikasi DNS antar kontainer lebih stabil
+# Jaringan internal untuk komunikasi antar kontainer
 networks:
   hvas-net:
     driver: bridge
 
 services:
-  # ==========================================
-  # 1. DATABASE KEMBAR (TERISOLASI)
-  # ==========================================
+  # Basis data untuk Auth Service
   postgres-auth:
     image: postgres:15-alpine
     container_name: hvas-postgres-auth
     restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: lupo123
-      POSTGRES_DB: db_auth
+    env_file:
+      - ./auth-service/.env
     volumes:
       - pgdata_auth:/var/lib/postgresql/data
-      # Otomatisasi eksekusi tabel users
       - ./auth-service/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - hvas-net
 
+  # Basis data untuk Monitoring Service
   postgres-monitor:
     image: postgres:15-alpine
     container_name: hvas-postgres-monitor
     restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: lupo123
-      POSTGRES_DB: db_monitor
+    env_file:
+      - ./monitoring-service/.env
     volumes:
       - pgdata_monitor:/var/lib/postgresql/data
-      # Otomatisasi eksekusi tabel logs
       - ./monitoring-service/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - hvas-net
 
-  # ==========================================
-  # 2. BROKER MQTT
-  # ==========================================
+  # Broker MQTT untuk komunikasi IoT
   mosquitto:
     image: eclipse-mosquitto:1.6.15
     container_name: hvas-mqtt
@@ -52,14 +43,11 @@ services:
     networks:
       - hvas-net
 
-  # ==========================================
-  # 3. MICROSERVICES (PORT TERTUTUP DARI LUAR)
-  # ==========================================
+  # Layanan Autentikasi
   auth-service:
     build: ./auth-service
     container_name: hvas-auth
     restart: always
-    # Menarik variabel rahasia langsung dari file .env di dalam folder auth-service
     env_file:
       - ./auth-service/.env
     depends_on:
@@ -67,11 +55,11 @@ services:
     networks:
       - hvas-net
 
+  # Layanan Monitoring Sensor
   monitoring-service:
     build: ./monitoring-service
     container_name: hvas-monitor
     restart: always
-    # Menarik variabel rahasia langsung dari file .env di dalam folder monitoring-service
     env_file:
       - ./monitoring-service/.env
     depends_on:
@@ -80,11 +68,11 @@ services:
     networks:
       - hvas-net
 
+  # Layanan Kendali Alat
   control-service:
     build: ./control-service
     container_name: hvas-control
     restart: always
-    # Menarik variabel rahasia langsung dari file .env di dalam folder control-service
     env_file:
       - ./control-service/.env
     depends_on:
@@ -92,15 +80,11 @@ services:
     networks:
       - hvas-net
 
-  # ==========================================
-  # 4. API GATEWAY NODE.JS (PINTU MASUK UTAMA)
-  # ==========================================
+  # Gerbang API Internal
   api-gateway:
     build: ./api-gateway
     container_name: hvas-api-gateway
     restart: always
-    ports:
-      - "5000:80" # Akses dari Vue.js menembak ke Port 5000 ini
     depends_on:
       - auth-service
       - monitoring-service
@@ -108,7 +92,7 @@ services:
     networks:
       - hvas-net
 
-# Deklarasi volume terpisah untuk dua database
+# Deklarasi volume untuk persistensi data basis data
 volumes:
   pgdata_auth:
   pgdata_monitor:

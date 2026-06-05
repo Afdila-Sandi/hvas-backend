@@ -1,26 +1,21 @@
-// 1. Panggil Environment Variables
-require("dotenv").config();
+//memanggil variabel dari .env
+require('dotenv').config();
 
-const http = require("http");
-const express = require("express");
-const cors = require("cors");
-
-// 2. Panggil logika Control Service
-const { initControlService } = require("./src/services/controlService");
+const http = require('http');
+const express = require('express');
+const cors = require('cors');
+const { initControlService } = require('./src/services/controlService');
 
 const app = express();
-const PORT = process.env.PORT || 5002;
+const PORT = process.env.PORT || 5003;
 
 app.use(cors());
 app.use(express.json());
-
-// 3. Buat Peladen HTTP (Dibutuhkan untuk menempelkan WebSocket)
+//membuat jalur WebSocket
 const server = http.createServer(app);
-
-// 4. Jalankan Service Kendali di latar belakang
+//menjalankan logika MQTT dan WebSocket
 initControlService(server);
-
-// 5. Nyalakan Peladen
+//menjalankan jalur websocket
 server.listen(PORT, () => {
-  console.log(`⚙️ Control Service berjalan aman di port internal ${PORT}`);
+    console.log(`Control Service berjalan di port ${PORT}`);
 });

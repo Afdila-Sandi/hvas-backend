@@ -1,24 +1,19 @@
-// 1. Inisialisasi variabel lingkungan (.env) paling awal
-require('dotenv').config();
+require("dotenv").config();
 
-const express = require('express');
-const cors = require('cors');
-
-// 2. Panggil peta rute (router) yang sudah dibuat
-const authRoutes = require('./src/routes/authRoutes');
+const express = require("express");
+const cors = require("cors");
+const authRoutes = require("./src/routes/authRoutes");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
-// 3. Middleware Dasar
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// 4. Daftarkan Rute Utama
-// Semua yang mengarah ke '/api/auth' akan dilempar ke fail authRoutes.js
-app.use('/api/auth', authRoutes);
+// Rute
+app.use("/api/auth", authRoutes);
 
-// 5. Nyalakan Peladen
 app.listen(PORT, () => {
-    console.log(`🔒 Auth Service berjalan aman di port internal ${PORT}`);
+  console.log(`Auth Service berjalan di port ${PORT}`);
 });

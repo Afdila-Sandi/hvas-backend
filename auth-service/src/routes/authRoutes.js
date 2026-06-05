@@ -1,8 +1,8 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const authController = require('../controllers/authController');
+const authController = require("../controllers/authController");
 
-// Rute untuk menerima permintaan POST dari Halaman Login Vue.js
-router.post('/login', authController.login);
+// Titik akhir login
+router.post("/login", authController.login);
 
 module.exports = router;

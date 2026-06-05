@@ -8,17 +8,18 @@ exports.initSensorService = (wss) => {
 
   let latestSensorData = null;
 
-  // 1. Logika MQTT
+  // Logika koneksi dan langganan MQTT
   mqttClient.on("connect", () => {
-    console.log("✅ Monitor Service terhubung ke Broker MQTT");
+    console.log("Monitor Service terhubung ke Broker MQTT");
     mqttClient.subscribe("esp/data");
   });
 
+  // Logika penerimaan data dari ESP8266
   mqttClient.on("message", (topic, message) => {
     try {
       const data = JSON.parse(message.toString());
 
-      // Simpan ke Buffer
+      // Menyimpan data terbaru ke dalam memori sementara (buffer)
       latestSensorData = {
         waktu: data.waktu || new Date().toISOString(),
         suhu_bme: data.suhu_bme || 0.0,
@@ -30,7 +31,7 @@ exports.initSensorService = (wss) => {
         kebisingan: data.kebisingan || 0.0,
       };
 
-      // Broadcast Real-time ke Client Vue.js
+      // Data real time
       const realtimeData = { ...latestSensorData, type: "realtime_data" };
       const payload = JSON.stringify(realtimeData);
 
@@ -40,39 +41,40 @@ exports.initSensorService = (wss) => {
         }
       });
     } catch (err) {
-      console.error("❌ Gagal memproses data MQTT:", err.message);
+      console.error("Format pesan MQTT tidak valid:", err.message);
     }
   });
 
-  // 2. Penjadwalan Simpan ke DB (Interval 1 Menit)
-  setInterval(async () => {
-    if (!latestSensorData) return;
+  // Interval penyimpanan data ke PostgreSQL setiap 5 menit
+  setInterval(
+    async () => {
+      if (!latestSensorData) return;
 
-    let client;
-    try {
-      client = await pool.connect();
-      const query = `
+      let client;
+      try {
+        client = await pool.connect();
+        const query = `
                 INSERT INTO logs (waktu, suhu_bme, kelembaban_bme, tekanan, status_pompa, suhu_dht, kelembaban_dht, kebisingan)
                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
             `;
-      const values = [
-        latestSensorData.waktu,
-        latestSensorData.suhu_bme,
-        latestSensorData.kelembaban_bme,
-        latestSensorData.tekanan,
-        latestSensorData.status_pompa,
-        latestSensorData.suhu_dht,
-        latestSensorData.kelembaban_dht,
-        latestSensorData.kebisingan,
-      ];
-      await client.query(query, values);
-      console.log(
-        "💾 Data (sampling) berhasil disimpan ke DB (Interval 1 Menit)",
-      );
-    } catch (err) {
-      console.error("❌ Gagal menyimpan data periodik ke DB:", err.message);
-    } finally {
-      if (client) client.release();
-    }
-  }, 60000);
+        const values = [
+          latestSensorData.waktu,
+          latestSensorData.suhu_bme,
+          latestSensorData.kelembaban_bme,
+          latestSensorData.tekanan,
+          latestSensorData.status_pompa,
+          latestSensorData.suhu_dht,
+          latestSensorData.kelembaban_dht,
+          latestSensorData.kebisingan,
+        ];
+        await client.query(query, values);
+        console.log("Data sampling berhasil disimpan ke basis data");
+      } catch (err) {
+        console.error("Gagal menyimpan data ke basis data:", err.message);
+      } finally {
+        if (client) client.release();
+      }
+    },
+    5 * 60 * 1000,
+  ); //300000 / 5 menit
 };

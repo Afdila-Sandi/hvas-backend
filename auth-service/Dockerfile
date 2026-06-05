@@ -3,8 +3,5 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --production
 COPY . .
-
-# Port untuk Auth Service
 EXPOSE 5001
-
 CMD ["node", "index.js"]
