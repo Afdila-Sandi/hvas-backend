@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 // Rute
-app.use("/api/auth", authRoutes);
+app.use("/", authRoutes);
 
 app.listen(PORT, () => {
   console.log(`Auth Service berjalan di port ${PORT}`);

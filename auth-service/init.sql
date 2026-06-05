@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
 INSERT INTO users (username, password_hash, nama, peran) 
 VALUES (
     'teknisi_bspji', 
-    '$2a$10$vI8aWBnP/eqtYeYi/K8Zgu30QfEaIq.R2Z1jW5.q2G/bQ1r3R6F1a', 
+    '$2b$10$03jCx2qCGy973Cg05O02cOAu/wenm1LIG1AZ3vM/DZlufXEw77Xo2', 
     'Teknisi Lab BSPJI', 
     'teknisi'
 ) ON CONFLICT (username) DO NOTHING;

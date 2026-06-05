@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 // Rute HTTP untuk riwayat data
-app.use("/api/monitor", historyRoutes);
+app.use("/", historyRoutes);
 
 const server = http.createServer(app);
 
