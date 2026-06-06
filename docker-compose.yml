@@ -1,12 +1,48 @@
-version: "3.8"
-
-# Jaringan internal untuk komunikasi antar kontainer
 networks:
   hvas-net:
     driver: bridge
 
 services:
-  # Basis data untuk Auth Service
+ #router sslh port 8000
+  sslh:
+    image: alpine:latest
+    container_name: hvas-sslh
+    restart: always
+    command: sh -c "apk add --no-cache sslh && sslh -f -u root -F /etc/sslh.cfg"
+    ports:
+      - "8000:8000" 
+    volumes:
+      - ./sslh.conf:/etc/sslh.cfg:ro
+    networks:
+      - hvas-net
+
+  #web server apache
+  apache-vue:
+    image: httpd:alpine
+    container_name: hvas-apache
+    restart: always
+    expose:
+      - "8443" 
+    volumes:
+      - ./apache.conf:/usr/local/apache2/conf/httpd.conf:ro
+      - ./certs:/usr/local/apache2/certs:ro
+    networks:
+      - hvas-net
+
+  #mqtt
+  mosquitto:
+    image: eclipse-mosquitto:1.6.15
+    container_name: hvas-mqtt
+    restart: always
+    expose:
+      - "8883" 
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./certs:/mosquitto/config/certs/certs:ro
+    networks:
+      - hvas-net
+
+  #database
   postgres-auth:
     image: postgres:15-alpine
     container_name: hvas-postgres-auth
@@ -18,8 +54,7 @@ services:
       - ./auth-service/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - hvas-net
-
-  # Basis data untuk Monitoring Service
+  
   postgres-monitor:
     image: postgres:15-alpine
     container_name: hvas-postgres-monitor
@@ -32,18 +67,6 @@ services:
     networks:
       - hvas-net
 
-  # Broker MQTT untuk komunikasi IoT
-  mosquitto:
-    image: eclipse-mosquitto:1.6.15
-    container_name: hvas-mqtt
-    restart: always
-    ports:
-      - "1883:1883"
-      - "9001:9001"
-    networks:
-      - hvas-net
-
-  # Layanan Autentikasi
   auth-service:
     build: ./auth-service
     container_name: hvas-auth
@@ -55,7 +78,6 @@ services:
     networks:
       - hvas-net
 
-  # Layanan Monitoring Sensor
   monitoring-service:
     build: ./monitoring-service
     container_name: hvas-monitor
@@ -68,7 +90,6 @@ services:
     networks:
       - hvas-net
 
-  # Layanan Kendali Alat
   control-service:
     build: ./control-service
     container_name: hvas-control
@@ -80,11 +101,12 @@ services:
     networks:
       - hvas-net
 
-  # Gerbang API Internal
   api-gateway:
     build: ./api-gateway
     container_name: hvas-api-gateway
     restart: always
+    expose:
+      - "5000" 
     depends_on:
       - auth-service
       - monitoring-service
@@ -92,7 +114,6 @@ services:
     networks:
       - hvas-net
 
-# Deklarasi volume untuk persistensi data basis data
 volumes:
   pgdata_auth:
   pgdata_monitor:
