@@ -25,7 +25,7 @@ exports.initSensorService = (wss) => {
         suhu_bme: data.suhu_bme || 0.0,
         kelembaban_bme: data.kelembaban_bme || 0.0,
         tekanan: data.tekanan || 0.0,
-        status_pompa: data.status_relay || "OFF",
+        status_pompa: data.status_pompa || "OFF",
         suhu_dht: data.suhu_dht || 0.0,
         kelembaban_dht: data.kelembaban_dht || 0.0,
         kebisingan: data.kebisingan || 0.0,

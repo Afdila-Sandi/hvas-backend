@@ -5,16 +5,12 @@ exports.getHistory = async (req, res) => {
   try {
     client = await pool.connect();
 
-    // Mengambil 500 data terbaru, zona waktu disesuaikan ke UTC untuk pengiriman
+    // Mengambil 500 data
     const dbQuery = `
-            SELECT
-                (waktu AT TIME ZONE 'Asia/Jakarta') AT TIME ZONE 'UTC' AS waktu,
-                suhu_bme, kelembaban_bme, tekanan, status_pompa AS status_relay,
-                suhu_dht, kelembaban_dht, kebisingan
-            FROM logs
-            ORDER BY waktu DESC
-            LIMIT 500
-        `;
+    SELECT * FROM logs
+    ORDER BY waktu DESC
+    LIMIT 500
+`;
 
     const result = await client.query(dbQuery);
     res.status(200).json({ data: result.rows });
