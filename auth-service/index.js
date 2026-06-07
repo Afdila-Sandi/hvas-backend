@@ -11,7 +11,9 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
-// Rute
+// Sajikan folder 'public' sebagai file statis
+app.use(express.static(path.join(__dirname, "public")));
+
 app.use("/", authRoutes);
 
 app.listen(PORT, () => {

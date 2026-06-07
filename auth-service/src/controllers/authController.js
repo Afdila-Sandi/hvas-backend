@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/database");
 
+// login
 exports.login = async (req, res) => {
   const { username, password } = req.body;
 
@@ -53,6 +54,60 @@ exports.login = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada peladen",
+    });
+  }
+};
+
+// register
+exports.register = async (req, res) => {
+  const { username, password, nama, peran } = req.body;
+
+  // validasi peran
+  if (!["teknisi", "admin"].includes(peran)) {
+    return res.status(400).json({
+      success: false,
+      message: "Peran harus 'teknisi' atau 'admin'",
+    });
+  }
+
+  try {
+    // Cek apakah username sudah ada
+    const checkUser = await pool.query(
+      "SELECT * FROM users WHERE username = $1",
+      [username],
+    );
+    if (checkUser.rows.length > 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Username sudah digunakan" });
+    }
+
+    // Hash kata sandi baru
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Simpan ke database
+    const insertQuery = `
+      INSERT INTO users (username, password_hash, nama, peran) 
+      VALUES ($1, $2, $3, $4) RETURNING id, username, peran
+    `;
+    const result = await pool.query(insertQuery, [
+      username,
+      hashedPassword,
+      nama,
+      peran,
+    ]);
+
+    return res.status(201).json({
+      success: true,
+      message: "Pengguna baru berhasil ditambahkan",
+      user: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Error register:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan pada peladen saat membuat pengguna",
     });
   }
 };
