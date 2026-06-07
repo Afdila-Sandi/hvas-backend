@@ -3,12 +3,11 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 const cors = require("cors");
 
 const app = express();
-
 app.use(cors());
 
-console.log("api gateway mengarahkan ke service..");
+console.log("API Gateway V2 (Terbaru) berjalan...");
 
-// Rute auth-service 5001
+// Rute Khusus Auth Service
 app.use(
   "/api/auth",
   createProxyMiddleware({
@@ -18,7 +17,7 @@ app.use(
   }),
 );
 
-// Rute monitoring-service 5002
+// Rute Khusus Monitoring Service
 app.use(
   "/api/monitor",
   createProxyMiddleware({
@@ -28,37 +27,29 @@ app.use(
   }),
 );
 
-// Rute control-service 5003
+// Rute Khusus Control Service (Relay) - HARUS "/" BUKAN ""
 app.use(
   "/api/control",
   createProxyMiddleware({
     target: "http://control-service:5003",
     changeOrigin: true,
-    pathRewrite: { "^/api/control": "" },
+    pathRewrite: { "^/api/control": "/" },
+    onProxyReq: (proxyReq, req, res) => {
+      console.log(
+        `[GATEWAY] Meneruskan perintah Relay ke Control Service: ${proxyReq.path}`,
+      );
+    },
   }),
 );
 
-// Rute websocket monitoring 5002
+// Rute Khusus WebSocket (Penting dipisah jalurnya)
 app.use(
   "/ws/monitor",
-  createProxyMiddleware({
-    target: "http://monitoring-service:5002",
-    changeOrigin: true,
-    ws: true,
-  }),
+  createProxyMiddleware({ target: "http://monitoring-service:5002", ws: true }),
 );
-
-// Rute websocket control 5003
 app.use(
-  "/api/control",
-  createProxyMiddleware({
-    target: "http://control-service:5003",
-    changeOrigin: true,
-    pathRewrite: { "^/api/control": "/" }, 
-  }),
+  "/ws/control",
+  createProxyMiddleware({ target: "http://control-service:5003", ws: true }),
 );
 
-const PORT = 5000;
-app.listen(PORT, () => {
-  console.log(`api gateway berjalan di internal port ${PORT}`);
-});
+app.listen(5000, () => console.log("Gateway listen on 5000"));
