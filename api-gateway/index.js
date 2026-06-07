@@ -7,23 +7,38 @@ const app = express();
 app.use(cors());
 
 console.log("api gateway mengarahkan ke service..");
-//rute auth-service 5001
+
+// Rute auth-service 5001
 app.use(
   "/api/auth",
   createProxyMiddleware({
     target: "http://auth-service:5001",
     changeOrigin: true,
+    pathRewrite: { "^/api/auth": "" },
   }),
 );
-//rute monitoring-service 5002
+
+// Rute monitoring-service 5002
 app.use(
   "/api/monitor",
   createProxyMiddleware({
     target: "http://monitoring-service:5002",
     changeOrigin: true,
+    pathRewrite: { "^/api/monitor": "" },
   }),
 );
-//rute websocket monitoring 5002
+
+// Rute control-service 5003
+app.use(
+  "/api/control",
+  createProxyMiddleware({
+    target: "http://control-service:5003",
+    changeOrigin: true,
+    pathRewrite: { "^/api/control": "" },
+  }),
+);
+
+// Rute websocket monitoring 5002
 app.use(
   "/ws/monitor",
   createProxyMiddleware({
@@ -32,13 +47,14 @@ app.use(
     ws: true,
   }),
 );
-//rute websocket control 5003
+
+// Rute websocket control 5003
 app.use(
-  "/ws/control",
+  "/api/control",
   createProxyMiddleware({
     target: "http://control-service:5003",
     changeOrigin: true,
-    ws: true,
+    pathRewrite: { "^/api/control": "/" }, 
   }),
 );
 

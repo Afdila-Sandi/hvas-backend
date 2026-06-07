@@ -14,7 +14,7 @@ app.use(express.json());
 //membuat jalur WebSocket
 const server = http.createServer(app);
 //menjalankan logika MQTT dan WebSocket
-initControlService(server);
+initControlService(server, app);
 //menjalankan jalur websocket
 server.listen(PORT, () => {
     console.log(`Control Service berjalan di port ${PORT}`);
